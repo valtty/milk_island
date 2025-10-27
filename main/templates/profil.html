@@ -1,0 +1,41 @@
+ {% load static %}
+ <link rel="stylesheet" href="{% static 'css\style.css' %}">
+<div class="profile-modal" id="profileModal">
+  <div class="profile-header">
+    {% if user.is_authenticated %}
+      {% if user.profile.avatar %}
+        <img src="{{ user.profile.avatar.url }}" alt="Аватар" class="profile-avatar" />
+      {% else %}
+        <img src="{% static 'img/photo-profil-none.jpg' %}" alt="Аватар" class="profile-avatar" />
+      {% endif %}
+      <div class="profile-info">
+        <div class="profile-name">{{ user.username }}</div>
+        <div class="profile-location">
+          <img src="{% static 'img/geolok.svg' %}" alt="Город" class="location-icon" />
+          {% if user.profile.city %}{{ user.profile.city }}{% else %}Не указан{% endif %}
+        </div>
+      </div>
+    {% else %}
+      <img src="{% static 'img/photo-profil-none.jpg' %}" alt="Аватар" class="profile-avatar" />
+      <div class="profile-info">
+        <div class="profile-name">Гость</div>
+        <div class="profile-location">Войдите или зарегистрируйтесь</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="profile-buttons">
+    {% if user.is_authenticated %}
+      <a href="{% url 'profile_edit' %}" class="profile-button">Мой профиль</a>
+      <a href="{% url 'my_orders' %}" class="profile-button">Мои заказы</a>
+    {% else %}
+      <a href="{% url 'authorization' %}" class="profile-button">Войти</a>
+      <a href="{% url 'registration' %}" class="profile-button">Зарегистрироваться</a>
+    {% endif %}
+    {% if user.is_authenticated %}
+    <a href="{% url 'logout' %}" class="logout-button">Выход</a>
+  {% endif %}
+  </div>
+
+  
+</div>

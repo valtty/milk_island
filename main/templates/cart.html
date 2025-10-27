@@ -1,0 +1,183 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css\style.css' %}" />
+    <title>Корзина</title>
+    <script src="{% static 'js/script.js' %}"></script>
+</head>
+<body>
+    <div class="header2">
+      <img class="logo" src="{% static 'img/logo.svg' %}" />
+      <div class="sidebar">
+        <a href="{% url 'mainpage' %}" class="sidebar-item">Главная</a>
+        <a href="{% url 'longread' %}" class="sidebar-item">О компании</a>
+        <a href="{% url 'products' %}" class="sidebar-item">Продукция</a>
+        <a href="{% url 'support' %}" class="sidebar-item">Контакты</a>
+      </div>
+      <div class="func">
+        <a href="#"><img src="{% static 'img/dark_mode.svg' %}" alt="" class="dark_mode"/></a>
+        <a href="{% url 'favorites_list' %}"><img src="{% static 'img/favorite.svg' %}" alt="Избранное" /></a>
+        <a href="{% url 'cart' %}"><img src="{% static 'img/cart.svg' %}" alt="" /></a>
+        <a href="#" id="openProfileModal"><img src="{% static 'img/profil.svg' %}" alt="" /></a>
+        <div class="mobile-menu">
+          <a href="#" id="menu-button">
+            <img src="{% static 'img/icon-menu.svg' %}" alt="Меню" />
+          </a>
+      </div>
+      </div>
+    </div>
+    <div class="container-cart">
+  <div class="left-side">
+    <h1 class="title-cart">Корзина</h1>
+    <div class="products">
+      {% for item in cart_items %}
+      <div class="cart-product">
+        <div class="product-image">
+          {% if item.product.image %}
+          <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+          {% else %}
+          <img src="{% static 'img/milk-photo-none.svg' %}" alt="No Image">
+          {% endif %}
+        </div>
+        <div class="product-content">
+          <div class="product-info">
+            <div class="product-name">{{ item.product.name }}, {{ item.product.weight }}</div>
+            <div class="product-id">#{{ item.product.id }}</div>
+          </div>
+          <div class="product-right">
+            <div class="counter">
+              <form action="{% url 'update_cart_quantity' item.product.id %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="decrease">
+                <button type="submit" class="btn">-</button>
+              </form>
+              <div class="number">{{ item.quantity }}</div>
+              <form action="{% url 'update_cart_quantity' item.product.id %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="increase">
+                <button type="submit" class="btn">+</button>
+              </form>
+            </div>
+            <div class="price-cart">{{ item.get_total }}₽</div>
+            <form action="{% url 'remove_from_cart' item.product.id %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="remove-btn">✕</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="nothing">Ваша корзина пуста.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="summary">
+    <h2 class="summary-title">Сделать заказ</h2>
+    <div class="summary-content">
+      <div class="prices">
+        <div class="line">
+          <span>Общая стоимость</span>
+          <span>{{ total_price }}₽</span>
+        </div>
+        <div class="line">
+          <span>Итого</span>
+          <span>{{ total_price }}₽</span>
+        </div>
+      </div>
+      <form action="{% url 'create_order' %}" method="post">
+          {% csrf_token %}
+          <button type="submit" class="order-btn">Заказать</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% include "profil.html" %}
+{% include "address_modal.html" %}
+{% include "payment_modal.html" %}
+{% include "mobile_menu.html" %}
+
+<script>
+    const orderButton = document.querySelector(".order-btn");
+    const addressModal = document.getElementById("addressModal");
+    const paymentModal = document.getElementById("paymentModal");
+    const closeAddressModal = document.getElementById("closeAddressModal");
+    const closePaymentModal = document.getElementById("closePaymentModal");
+    const addressForm = document.getElementById("addressForm");
+    const paymentForm = document.getElementById("paymentForm");
+
+    let currentAddress = '';
+
+
+    if (orderButton) {
+        orderButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            addressModal.style.display = 'block';
+        });
+    }
+
+    if (closeAddressModal) {
+        closeAddressModal.addEventListener('click', () => {
+            addressModal.style.display = 'none';
+        });
+    }
+
+    if (closePaymentModal) {
+        closePaymentModal.addEventListener('click', () => {
+            paymentModal.style.display = 'none';
+        });
+    }
+
+    window.addEventListener('click', (e) => {
+        if (e.target == addressModal) {
+            addressModal.style.display = 'none';
+        }
+        if (e.target == paymentModal) {
+            paymentModal.style.display = 'none';
+        }
+    });
+
+    if (addressForm) {
+        addressForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            currentAddress = document.getElementById('addressInput').value;
+            addressModal.style.display = 'none';
+            paymentModal.style.display = 'block';
+        });
+    }
+
+    // Обработка отправки формы оплаты
+    if (paymentForm) {
+        paymentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            try {
+                const response = await fetch('{% url "create_order" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ address: currentAddress })
+                });
+
+                if (response.ok) {
+                    paymentModal.style.display = 'none';
+                    alert('Заказ успешно оформлен!');
+                    window.location.href = '{% url "my_orders" %}';
+                } else {
+                    alert('Произошла ошибка при оформлении заказа.');
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Произошла ошибка при отправке запроса.');
+            }
+        });
+    }
+</script>
+</body>
+</html>

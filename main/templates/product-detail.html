@@ -1,0 +1,441 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="{% static 'css\style.css' %}" />
+    <script src="{% static 'js/script.js' %}"></script>
+    <title>{{ product.name }}</title>
+  </head>
+  <body>
+    <div class="header2">
+      <img class="logo" src="{% static 'img/logo.svg' %}" />
+      <div class="sidebar">
+        <a href="{% url 'mainpage' %}" class="sidebar-item">Главная</a>
+        <a href="{% url 'longread' %}" class="sidebar-item">О компании</a>
+        <a href="{% url 'products' %}" class="sidebar-item">Продукция</a>
+        <a href="{% url 'support' %}" class="sidebar-item">Контакты</a>
+      </div>
+      <div class="func">
+        <a href="#"><img src="{% static 'img/dark_mode.svg' %}" alt="" class="dark_mode"/></a>
+        <a href="{% url 'favorites_list' %}"><img src="{% static 'img/favorite.svg' %}" alt="Избранное" /></a>
+        <a href="{% url 'cart' %}"><img src="{% static 'img/cart.svg' %}" alt="" /></a>
+        <a href="#" id="openProfileModal"><img src="{% static 'img/profil.svg' %}" alt="" /></a>
+        <div class="mobile-menu">
+          <a href="#" id="menu-button">
+            <img src="{% static 'img/icon-menu.svg' %}" alt="Меню" />
+          </a>
+      </div>
+      </div>
+    </div>
+    <div class="information">
+      <div class="photo-product">
+        {% if product.image %}
+        <img src="{{ product.image.url }}" alt="{{ product.name }}" />
+        {% else %}
+        <img src="{% static 'img/no-image.png' %}" alt="No Image" /> {% endif %}
+      </div>
+      <div class="text-inf">
+        <div class="name-product">{{ product.name }}</div>
+        <div class="block">
+          <div class="bju">
+            <div class="title">Пищевая ценность<br />на 100 г (БЖУ)</div>
+            <ul class="bju-ul">
+              <li>жиры – {{ product.fats|default:"0.0" }} г</li>
+              <li>белки – {{ product.proteins|default:"0.0" }} г</li>
+              <li>углеводы – {{ product.carbohydrates|default:"0.0" }} г</li>
+            </ul>
+          </div>
+          <div class="weight-date">
+            <div class="weight">
+              <div class="title">Срок годности</div>
+              <div class="text">
+                {{ product.shelf_life|default:"Не указан" }}
+              </div>
+            </div>
+            <div class="date">
+              <div class="title">Вес / Объем</div>
+              <div class="text">{{ product.weight|default:"Не указан" }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="caloric">
+          <div class="title">
+            Энергетическая ценность<br />на 100 г (калорийность)
+          </div>
+          <div class="text">{{ product.calories|default:"00" }} ккал</div>
+        </div>
+        <div class="structure">
+          <div class="title">Состав</div>
+          <div class="text">{{ product.description|default:"Не указан" }}</div>
+        </div>
+        <div class="price">
+          <div class="title">Цена: {{ product.price }}₽</div>
+        </div>
+        <div class="buttons">
+          <button class="button-atc {% if is_in_cart %}added{%endif%}" 
+        data-product-id="{{ product.id }}" 
+        data-url="{% url 'add_to_cart' product.id %}">
+        <img
+      src="{% static 'img/galochka.svg' %}"
+      alt="В корзине"
+      class="btn-check"
+  />
+  <span class="btn-label">
+    {% if is_in_cart %}В корзине{% else %}Добавить в корзину{% endif %}
+  </span>
+  
+</button>
+
+        <button class="favorite-button" data-product-id="{{ product.id }}">
+          {% csrf_token %}
+          <img
+            src="{% static 'img/' %}{% if is_favorite %}favorite_filled.svg{% else %}favorite.svg{% endif %}"
+            alt="Избранное"
+            class="favorite-icon"
+          />
+          <span class="btn-label">{% if is_favorite %}В избранном{% else %}В избранное{% endif%}</span>
+        </button>
+        </div>
+      </div>
+    </div>
+    <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+
+    <div class="reviews">
+      <div class="reviews-top">
+        <h2 class="reviews-title">Отзывы</h2>
+        {% if user.is_authenticated %}
+        <form class="comment-form" enctype="multipart/form-data" method="post">
+          {% csrf_token %} {{ review_form.comment_text }}
+
+          <div class="form-actions">
+            <div class="rating-box">
+              <span class="rating-label">Оценка:</span>
+              <div class="stars" id="star-container"></div>
+              {{ review_form.rating.as_hidden }}
+            </div>
+
+            <div class="photo-upload">
+              <label for="id_image" class="photo-label">Загрузить фото:</label>
+              <div class="custom-file-input">
+                {{ review_form.image }}
+                <span class="file-button">Выберите файл</span>
+                <span class="file-name">Файл не выбран</span>
+              </div>
+              <div class="preview-container" id="preview-container"></div>
+            </div>
+
+            <button type="submit" class="submit-button">Отправить</button>
+          </div>
+        </form>
+        {% else %}
+        <div class="pls">
+          Для оставления отзыва, пожалуйста,
+          <a href="{% url 'authorization' %}" class="pls-a">войдите</a> или
+          <a href="{% url 'registration' %}" class="pls-a">зарегистрируйтесь</a>.
+        </div>
+        {% endif %}
+      </div>
+      <div class="review-list">
+        {% for review in reviews %}
+        <div class="review">
+          <img
+            class="review-avatar"
+            src="{% if review.user.profile.avatar %}{{ review.user.profile.avatar.url }}{% else %}{% static 'img/photo-profil-none.jpg' %}{% endif %}"
+            alt="Аватар"
+          />
+          <div class="review-content">
+            <div class="review-header">
+              <div class="review-name">{{ review.user.username }}</div>
+              <div class="review-date">
+                {{ review.created_at|date:"d F, Y" }}
+              </div>
+            </div>
+            <div class="review-rating">
+              {% for i in "12345"|make_list %}
+                {% if forloop.counter <= review.rating %}
+                  <img src="{% static 'img/star-polnaya.svg' %}" alt="" />
+                {% else %}
+                  <img src="{% static 'img/star-pystaya.svg' %}" alt="" />
+                {%endif%}
+              {% endfor %}
+            </div>
+            <div class="review-text">{{ review.comment_text }}</div>
+            {% if review.image %}
+            <div class="review-image">
+              <img src="{{ review.image.url }}" alt="Изображение отзыва" />
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% empty %}
+        <div class="first">Пока нет отзывов для этого продукта. Будьте первым!</div>
+        {% endfor %}
+      </div>
+      <button class="load-more">Посмотреть больше</button>
+    </div>
+
+    {% if messages %}
+    <div id="toast-container">
+      {% for message in messages %}
+      <div class="toast-message {{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <footer class="footer">
+      <div class="video-container">
+        <video autoplay muted loop playsiline class="footer-video"
+          data-light="{% static 'img/0714(2).mp4' %}" 
+          data-dark="{% static 'img/0714(3).mp4' %}">
+          <source src="{% static 'img/0714(2).mp4' %}" />
+        </video>
+      </div>
+      <div class="footer-overlay">
+        <div class="footer-content">
+          <div class="block-c-1">
+            <div class="f-address">
+              <img src="../static/img/geolok.svg" alt="" />
+              <div class="b-text">
+                Балейская 2, 1 этаж<br />Ингодинский район, Чита, 672020
+              </div>
+            </div>
+            <div class="f-phone">
+              <img src="../static/img/phone.svg" alt="" />
+              <div class="b-text">
+                +7 (3022) 31‒26‒61<br />+7 (3022) 31‒26‒75
+              </div>
+            </div>
+            <div class="f-time">
+              <img src="../static/img/time.svg" alt="" />
+              <div class="b-text">с 9:00 до 18:00 без выходных</div>
+            </div>
+          </div>
+          <div class="block-c-2">
+            <div class="milk-island">
+              <img class="footer-logo" src="../static/img/logo.svg" alt="" />
+              <img class="name" src="../static/img/footer-title.svg" alt="">
+            </div>
+            <a href="{% url 'support' %}" class="f-button">Напишите нам</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+    <script>
+      const commentForm = document.querySelector(".comment-form");
+      const textarea = commentForm
+        ? commentForm.querySelector("#id_comment_text")
+        : null;
+      const formActions = commentForm
+        ? commentForm.querySelector(".form-actions")
+        : null;
+
+      const starContainer = document.getElementById("star-container");
+      const ratingInput = document.getElementById("id_rating");
+      const maxStars = 5;
+
+      if (starContainer) {
+        for (let i = 1; i <= maxStars; i++) {
+          const svg = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "svg"
+          );
+          svg.classList.add("star");
+          svg.setAttribute("data-value", i);
+          svg.setAttribute("viewBox", "0 0 24 24");
+          svg.innerHTML =
+            '<path d="M12 .587l3.668 7.429L24 9.168l-6 5.848 1.416 8.264L12 18.897l-7.416 4.383L6 15.016 0 9.168l8.332-1.152z"/>';
+          starContainer.appendChild(svg);
+        }
+
+        let selectedRating = ratingInput ? parseInt(ratingInput.value) || 0 : 0;
+
+        starContainer.addEventListener("click", (e) => {
+          if (e.target.closest(".star")) {
+            selectedRating = +e.target.closest(".star").dataset.value;
+            if (ratingInput) {
+              ratingInput.value = selectedRating;
+            }
+            updateStars();
+          }
+        });
+
+        function updateStars() {
+          const stars = document.querySelectorAll(".star");
+          stars.forEach((star) => {
+            const val = +star.dataset.value;
+            star.classList.toggle("filled", val <= selectedRating);
+          });
+        }
+        updateStars();
+      }
+
+      const fileInput = document.getElementById("id_image");
+      const previewContainer = document.getElementById("preview-container");
+      const fileNameSpan = commentForm
+        ? commentForm.querySelector(".file-name")
+        : null;
+      const fileButton = commentForm
+        ? commentForm.querySelector(".file-button")
+        : null;
+
+      if (fileInput && fileButton) {
+        fileButton.addEventListener("click", () => {
+          fileInput.click();
+        });
+
+        fileInput.addEventListener("change", () => {
+          previewContainer.innerHTML = "";
+          if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            if (fileNameSpan) {
+              fileNameSpan.textContent = file.name;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const img = document.createElement("img");
+              img.src = e.target.result;
+              img.style.maxWidth = "100px";
+              img.style.maxHeight = "100px";
+              img.style.marginRight = "10px";
+              previewContainer.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+          } else {
+            if (fileNameSpan) {
+              fileNameSpan.textContent = "Файл не выбран";
+            }
+          }
+        });
+      }
+
+      const favoriteButton = document.querySelector(".favorite-button");
+      if (favoriteButton) {
+        favoriteButton.addEventListener("click", async (e) => {
+          e.preventDefault();
+          const productId = favoriteButton.dataset.productId;
+          const csrfToken = favoriteButton.querySelector(
+            "[name=csrfmiddlewaretoken]"
+          ).value;
+          const favoriteIcon = favoriteButton.querySelector(".favorite-icon");
+          const favoriteText = favoriteButton.querySelector("span");
+
+          try {
+            const response = await fetch(`/toggle-favorite/${productId}/`, {
+              method: "POST",
+              headers: {
+                "X-CSRFToken": csrfToken,
+                "Content-Type": "application/json",
+              },
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+              if (data.status === "added") {
+                favoriteIcon.src = favoriteIcon.src.replace(
+                  "favorite.svg",
+                  "favorite_filled.svg"
+                );
+                favoriteText.textContent = "В избранном";
+              } else if (data.status === "removed") {
+                favoriteIcon.src = favoriteIcon.src.replace(
+                  "favorite_filled.svg",
+                  "favorite.svg"
+                );
+                favoriteText.textContent = "В избранное";
+              }
+            } else {
+            }
+          } catch (error) {
+            console.error("Ошибка:", error);
+          }
+        });
+      }
+
+const loadMoreBtn = document.querySelector('.load-more');
+const reviews = document.querySelectorAll('.review-list .review');
+const reviewsToShow = 3;
+let currentIndex = reviewsToShow;
+
+if (reviews.length <= reviewsToShow) {
+    loadMoreBtn.style.display = 'none';
+}
+
+function updateReviews() {
+    let hiddenCount = 0;
+
+    reviews.forEach((review, index) => {
+        if (index < currentIndex) {
+            review.style.display = 'flex';
+        } else {
+            review.style.display = 'none';
+            hiddenCount++;
+        }
+    });
+
+    if (hiddenCount <= 0) {
+        loadMoreBtn.style.display = 'none';
+    } else {
+        loadMoreBtn.style.display = 'flex';
+    }
+}
+
+updateReviews();
+
+loadMoreBtn.addEventListener('click', () => {
+    currentIndex += reviewsToShow;
+    updateReviews();
+});
+
+document.querySelectorAll(".button-atc").forEach((btn) => {
+  const url = btn.dataset.url;
+  const label = btn.querySelector(".btn-label");
+  const check = btn.querySelector(".btn-check");
+
+  btn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": getCSRFToken(),
+        },
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        if (data.status === "added" || data.status === "updated") {
+          label.textContent = "В корзине";
+          check.style.display = "inline";
+          btn.classList.add("added");
+        }
+      } else if (res.status === 401 && data.redirect_url) {
+        window.location.href = data.redirect_url;
+      } else {
+        console.error("Ошибка:", data);
+      }
+    } catch (err) {
+      console.error("Сеть/JS ошибка:", err);
+    } finally {
+      setTimeout(() => (btn.disabled = false), 300);
+    }
+  });
+});
+
+function getCookie(name) {
+  const m = document.cookie.match(new RegExp("(^|; )" + name + "=([^;]*)"));
+  return m ? decodeURIComponent(m[2]) : null;
+}
+function getCSRFToken() {
+  return document.getElementById("csrf-token")?.value || getCookie("csrftoken");
+}
+
+    </script>
+    {% include "profil.html" %}
+        {% include "mobile_menu.html" %}
+  </body>
+</html>
